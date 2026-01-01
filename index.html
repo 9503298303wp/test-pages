@@ -2,29 +2,35 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>API Test</title>
+  <title>POST Test</title>
 </head>
 <body>
 
-<h2>Frontend Loaded</h2>
+<h2>POST API Test</h2>
 
-<button onclick="callApi()">Call API</button>
+<button onclick="postTest()">Send POST</button>
 
 <p id="result"></p>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwWNYCTokhfHsqFFu0ZThDpAQaCcP7-rk2lBlMtWh0VKGGfCDOK99U1jSqljJacn32g/exec";
+const API_URL = "PASTE_NEW_SCRIPT_URL_HERE";
 
-function callApi() {
-  fetch(API_URL)
-    .then(res => res.text())
-    .then(txt => {
-      document.getElementById("result").innerText = txt;
-    })
-    .catch(err => {
-      document.getElementById("result").innerText = "ERROR";
-      console.error(err);
-    });
+function postTest() {
+  fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ test: "hello" })
+  })
+  .then(r => r.text())
+  .then(t => {
+    document.getElementById("result").innerText = t;
+  })
+  .catch(e => {
+    document.getElementById("result").innerText = "ERROR";
+    console.error(e);
+  });
 }
 </script>
 
