@@ -1,38 +1,171 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>POST Test</title>
+<meta charset="UTF-8">
+<title>Parcel Label Generator</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #eef1f5;
+  padding: 20px;
+}
+
+#loginBox {
+  max-width: 320px;
+  margin: 120px auto;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 6px;
+}
+
+.container {
+  max-width: 800px;
+  margin: auto;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 6px;
+}
+
+input, textarea, select {
+  width: 100%;
+  padding: 8px;
+  margin: 6px 0 12px 0;
+}
+
+button {
+  padding: 8px 16px;
+  margin-right: 6px;
+  cursor: pointer;
+}
+</style>
 </head>
+
 <body>
 
-<h2>POST API Test</h2>
+<!-- LOGIN -->
+<div id="loginBox">
+  <h3>Login</h3>
+  <input id="user" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+</div>
 
-<button onclick="postTest()">Send POST</button>
+<!-- MAIN APP -->
+<div class="container" id="app" style="display:none">
+  <h2>Parcel Label Generator</h2>
 
-<p id="result"></p>
+  <label>Saved Addresses</label>
+  <select id="savedAddresses" onchange="loadSelected()">
+    <option value="">-- Select --</option>
+  </select>
+
+  <label>To Address</label>
+  <textarea id="toText" rows="5"></textarea>
+
+  <label>From Address</label>
+  <textarea id="fromText" rows="5">AutoMekz Electronics,
+Flat No.2 Ram Heights,
+Cidco, Nashik,
+Maharashtra</textarea>
+
+  <button onclick="saveOnly()">Save</button>
+  <button onclick="saveAndPrint()">Save & Print</button>
+</div>
+
+<!-- PRINT TEMPLATE -->
+<div id="printPage" style="display:none; width:210mm; padding:40px;">
+  <h3>To,</h3>
+  <pre id="printTo"></pre>
+
+  <h3>From,</h3>
+  <pre id="printFrom"></pre>
+</div>
 
 <script>
+/* ======== CHANGE THIS ======== */
 const API_URL = "https://script.google.com/macros/s/AKfycbw0O-pWGVG9jHF5g4B6bQmavA_vmqa2ItoZXI2u4A0/dev";
 
-function postTest() {
-  fetch(API_URL, {
+/* ======== LOGIN ======== */
+async function login() {
+  const r = await fetch(API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ test: "hello" })
-  })
-  .then(r => r.text())
-  .then(t => {
-    document.getElementById("result").innerText = t;
-  })
-  .catch(e => {
-    document.getElementById("result").innerText = "ERROR";
-    console.error(e);
+    body: JSON.stringify({
+      action: "login",
+      username: user.value,
+      password: pass.value
+    })
+  });
+
+  const d = await r.json();
+
+  if (d.success) {
+    localStorage.setItem("token", d.token);
+    loginBox.style.display = "none";
+    app.style.display = "block";
+    loadList();
+  } else {
+    alert("Invalid login");
+  }
+}
+
+/* ======== LOAD ADDRESSES ======== */
+async function loadList() {
+  const r = await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "list",
+      token: localStorage.getItem("token")
+    })
+  });
+
+  const data = await r.json();
+  savedAddresses.innerHTML = `<option value="">-- Select --</option>`;
+
+  data.forEach(addr => {
+    const o = document.createElement("option");
+    o.textContent = addr.split("\n")[0];
+    o.dataset.full = addr;
+    savedAddresses.appendChild(o);
+  });
+}
+
+function loadSelected() {
+  const o = savedAddresses.selectedOptions[0];
+  if (o) toText.value = o.dataset.full;
+}
+
+/* ======== SAVE ONLY ======== */
+async function saveOnly() {
+  if (!toText.value.trim()) return;
+
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "save",
+      token: localStorage.getItem("token"),
+      address: toText.value
+    })
+  });
+
+  loadList();
+}
+
+/* ======== SAVE & PRINT ======== */
+async function saveAndPrint() {
+  await saveOnly();
+
+  printTo.textContent = toText.value;
+  printFrom.textContent = fromText.value;
+
+  html2pdf().from(printPage).outputPdf("blob").then(b => {
+    const w = window.open(URL.createObjectURL(b));
+    if (w) w.onload = () => w.print();
   });
 }
 </script>
 
 </body>
-</html>
+    </html>
